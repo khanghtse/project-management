@@ -3,6 +3,7 @@ package khanghtse.com.projectmanagement.entities;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -19,6 +20,9 @@ public class Project {
 
     @Column(nullable = false, unique = true)
     private String key; // Ví dụ: "WEB", "APP"
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
 
     @Column(name = "current_task_number")
     private Integer currentTaskNumber = 0; // Để sinh ID: WEB-1, WEB-2
@@ -38,4 +42,23 @@ public class Project {
     // --- BỔ SUNG PROJECT MEMBERS ---
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ProjectMember> members;
+
+    // --- TIMESTAMPS ---
+
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
 }
