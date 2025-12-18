@@ -22,7 +22,9 @@ public class AuthService implements IAuthService {
 
     @Override
     public String login(AuthDto.LoginRequest loginRequest) {
-        // 1. Xác thực qua Spring Security
+        System.out.println("1. Bắt đầu login với email: " + loginRequest.getEmail());
+
+        // Nếu sai pass, dòng này sẽ tự ném BadCredentialsException ra ngoài
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         loginRequest.getEmail(),
@@ -30,10 +32,8 @@ public class AuthService implements IAuthService {
                 )
         );
 
-        // 2. Nếu ok, lưu vào Context
+        System.out.println("2. Xác thực thành công!");
         SecurityContextHolder.getContext().setAuthentication(authentication);
-
-        // 3. Sinh JWT Token trả về
         return jwtTokenProvider.generateToken(loginRequest.getEmail());
     }
 
