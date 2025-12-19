@@ -42,7 +42,7 @@ public class ProjectService implements IProjectService {
         Project project = new Project();
         project.setName(request.getName());
         project.setKey(request.getKey().toUpperCase());
-        //project.setDescription(request.getDescription());
+        project.setDescription(request.getDescription());
         project.setWorkspace(workspace);
         project.setOwner(user);
         project.setCurrentTaskNumber(0); // Khởi đầu chưa có task nào
