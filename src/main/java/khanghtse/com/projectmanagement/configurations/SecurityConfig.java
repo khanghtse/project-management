@@ -16,6 +16,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 
 import java.util.List;
@@ -48,7 +49,9 @@ public class SecurityConfig {
                     CorsConfiguration configuration = new CorsConfiguration();
                     configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:3000"));
                     configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-                    configuration.setAllowedHeaders(List.of("*"));
+                    //configuration.setAllowedHeaders(List.of("*"));
+                    configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Cache-Control"));
+                    configuration.setExposedHeaders(List.of("Authorization")); // Cho phép client đọc header này
                     configuration.setAllowCredentials(true);
                     return configuration;
                 }))
@@ -58,6 +61,16 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+                // 3. FIX LỖI REDIRECT & CORS TẠI ĐÂY
+                // Chỉ định rõ: Với các URL bắt đầu bằng /api/**, nếu chưa login -> Trả về 401 luôn.
+                // Không để Spring tự động redirect sang trang login của Google.
+                .exceptionHandling(e -> e
+                        .defaultAuthenticationEntryPointFor(
+                                new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
+                                PathPatternRequestMatcher.pathPattern("/api/**")
+                        )
+                )
 
                 // --- CẤU HÌNH OAUTH2 (GOOGLE) ---
                 .oauth2Login(oauth2 -> oauth2
