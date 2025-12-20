@@ -47,6 +47,11 @@ public class TaskService implements ITaskService {
         TaskColumn column = taskColumnRepository.findById(request.getColumnId())
                 .orElseThrow(() -> new RuntimeException("Column not found"));
 
+        // Validate: Cột phải thuộc dự án này
+        if (!column.getProject().getId().equals(projectId)) {
+            throw new RuntimeException("Column does not belong to this project");
+        }
+
         // 1. Tăng số thứ tự task (Atomic update nên làm ở DB level trong thực tế)
         project.setCurrentTaskNumber(project.getCurrentTaskNumber() + 1);
         projectRepository.save(project);

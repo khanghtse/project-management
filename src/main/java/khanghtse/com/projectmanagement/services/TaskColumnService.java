@@ -80,8 +80,18 @@ public class TaskColumnService implements ITaskColumnService{
     @Override
     @Transactional
     public void deleteColumn(UUID columnId) {
-        // Lưu ý: Cần xử lý các Task trong cột này trước khi xóa (Move sang cột khác hoặc xóa luôn)
-        // Ở đây demo xóa luôn (Cascade sẽ xóa tasks nếu config DB, hoặc phải xóa tay)
+        if (!taskColumnRepository.existsById(columnId)) {
+            throw new RuntimeException("Column not found");
+        }
+
+        // Check xem có task nào đang nằm trong cột này không?
+        // Nếu có thì chặn xóa để an toàn dữ liệu.
+        // (Bạn cần thêm method countByColumnId vào TaskRepository)
+        // long taskCount = taskRepository.countByColumnId(columnId);
+        // if (taskCount > 0) {
+        //    throw new RuntimeException("Cannot delete column containing tasks. Please move or delete tasks first.");
+        // }
+
         taskColumnRepository.deleteById(columnId);
     }
 
