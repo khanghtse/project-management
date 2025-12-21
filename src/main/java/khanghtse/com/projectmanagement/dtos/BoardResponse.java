@@ -12,5 +12,6 @@ import java.util.UUID;
 @NoArgsConstructor
 public class BoardResponse {
     private UUID projectId;
+    private UUID workspaceId;
     private List<ColumnResponse> columns;
 }

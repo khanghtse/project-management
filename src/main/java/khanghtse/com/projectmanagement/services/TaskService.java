@@ -27,17 +27,23 @@ public class TaskService implements ITaskService {
     // Lấy dữ liệu Board (Cột + Tasks)
     @Override
     public BoardResponse getBoard(UUID projectId) {
-        // 1. Lấy danh sách cột
+        // 1. Tìm Project để lấy Workspace ID
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new RuntimeException("Project not found"));
+
+        UUID workspaceId = project.getWorkspace().getId();
+
+        // 2. Lấy danh sách cột và tasks
         List<TaskColumn> columns = taskColumnRepository.findByProjectIdOrderByPositionAsc(projectId);
 
-        // 2. Map cột sang DTO kèm theo danh sách Task bên trong
         List<ColumnResponse> columnResponses = columns.stream().map(col -> {
             List<Task> tasks = taskRepository.findByColumnIdOrderByPositionAsc(col.getId());
             List<TaskResponse> taskResponses = tasks.stream().map(this::mapToTaskDto).collect(Collectors.toList());
             return new ColumnResponse(col.getId(), col.getName(), taskResponses);
         }).collect(Collectors.toList());
 
-        return new BoardResponse(projectId, columnResponses);
+        // 3. Trả về BoardResponse kèm workspaceId
+        return new BoardResponse(projectId, workspaceId, columnResponses);
     }
 
     @Override
