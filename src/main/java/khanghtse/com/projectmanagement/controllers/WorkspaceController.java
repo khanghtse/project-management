@@ -1,6 +1,7 @@
 package khanghtse.com.projectmanagement.controllers;
 
 import khanghtse.com.projectmanagement.dtos.CreateWorkspaceRequest;
+import khanghtse.com.projectmanagement.dtos.UserDto;
 import khanghtse.com.projectmanagement.dtos.WorkspaceResponse;
 import khanghtse.com.projectmanagement.services.IWorkspaceService;
 import lombok.RequiredArgsConstructor;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/workspaces")
@@ -35,5 +37,11 @@ public class WorkspaceController {
 
         WorkspaceResponse response = workspaceService.createWorkspace(request, principal.getName());
         return new ResponseEntity<>(response, HttpStatus.CREATED);
+    }
+
+    // GET /api/v1/workspaces/{id}/members
+    @GetMapping("/{workspaceId}/members")
+    public ResponseEntity<List<UserDto>> getWorkspaceMembers(@PathVariable UUID workspaceId) {
+        return ResponseEntity.ok(workspaceService.getWorkspaceMembers(workspaceId));
     }
 }

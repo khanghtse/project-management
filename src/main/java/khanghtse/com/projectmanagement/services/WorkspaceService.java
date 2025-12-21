@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -56,6 +57,21 @@ public class WorkspaceService implements IWorkspaceService{
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return workspaceRepository.findAllByUserId(user.getId()).stream()
                 .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<UserDto> getWorkspaceMembers(UUID workspaceId) {
+        // Kiểm tra workspace tồn tại (Optional)
+        if (!workspaceRepository.existsById(workspaceId)) {
+            throw new RuntimeException("Workspace not found");
+        }
+
+        return workspaceMemberRepository.findByWorkspaceId(workspaceId).stream()
+                .map(member -> {
+                    User u = member.getUser();
+                    return new UserDto(u.getId(), u.getName(), u.getEmail(), u.getAvatarUrl());
+                })
                 .collect(Collectors.toList());
     }
 
