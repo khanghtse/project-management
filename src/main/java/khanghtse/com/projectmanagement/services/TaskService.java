@@ -7,7 +7,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -78,21 +80,10 @@ public class TaskService implements ITaskService {
         task.setTaskNumber(project.getCurrentTaskNumber());
         task.setPosition(newRank);
 
-        // --- LOGIC MỚI: VALIDATE ASSIGNEE ---
-        if (request.getAssigneeId() != null) {
-            User assignee = userRepository.findById(request.getAssigneeId())
-                    .orElseThrow(() -> new RuntimeException("Assignee user not found"));
-
-            // Kiểm tra: Assignee có phải là thành viên của Workspace chứa Project này không?
-            boolean isMember = workspaceMemberRepository.findById(
-                    new WorkspaceMember.WorkspaceMemberId(project.getWorkspace().getId(), assignee.getId())
-            ).isPresent();
-
-            if (!isMember) {
-                throw new RuntimeException("User " + assignee.getEmail() + " is not a member of this workspace!");
-            }
-
-            task.setAssignee(assignee);
+        // --- XỬ LÝ NHIỀU ASSIGNEES ---
+        if (request.getAssigneeIds() != null && !request.getAssigneeIds().isEmpty()) {
+            Set<User> assignees = validateAndGetAssignees(project.getWorkspace().getId(), request.getAssigneeIds());
+            task.setAssignees(assignees);
         }
 
 //        if (request.getAssigneeId() != null) {
@@ -142,28 +133,10 @@ public class TaskService implements ITaskService {
             task.setPriority(request.getPriority());
         }
 
-        // 2. Xử lý gỡ người làm (Unassign)
-        if (Boolean.TRUE.equals(request.getUnassign())) {
-            task.setAssignee(null);
-        }
-        // 3. Xử lý thay đổi người làm (Re-assign)
-        else if (request.getAssigneeId() != null) {
-            // Logic check thành viên workspace (quan trọng!)
-            User assignee = userRepository.findById(request.getAssigneeId())
-                    .orElseThrow(() -> new RuntimeException("Assignee user not found"));
-
-            // Lấy Workspace ID từ Project của Task
-            UUID workspaceId = task.getProject().getWorkspace().getId();
-
-            boolean isMember = workspaceMemberRepository.findById(
-                    new WorkspaceMember.WorkspaceMemberId(workspaceId, assignee.getId())
-            ).isPresent();
-
-            if (!isMember) {
-                throw new RuntimeException("User " + assignee.getEmail() + " is not a member of the workspace!");
-            }
-
-            task.setAssignee(assignee);
+        // Cập nhật danh sách người làm (Ghi đè)
+        if (request.getAssigneeIds() != null) {
+            Set<User> assignees = validateAndGetAssignees(task.getProject().getWorkspace().getId(), request.getAssigneeIds());
+            task.setAssignees(assignees);
         }
 
         Task savedTask = taskRepository.save(task);
@@ -184,15 +157,35 @@ public class TaskService implements ITaskService {
 
     // Mapper
     private TaskResponse mapToTaskDto(Task t) {
-        UserDto assigneeDto = t.getAssignee() != null ?
-                new UserDto(t.getAssignee().getId(), t.getAssignee().getName(), t.getAssignee().getEmail(), t.getAssignee().getAvatarUrl()) : null;
+        List<UserDto> assigneeDtos = t.getAssignees().stream()
+                .map(u -> new UserDto(u.getId(), u.getName(), u.getEmail(), u.getAvatarUrl()))
+                .collect(Collectors.toList());
 
-        String displayId = t.getProject().getKey() + "-" + t.getTaskNumber(); // WEB-101
+        String displayId = t.getProject().getKey() + "-" + t.getTaskNumber();
 
         return new TaskResponse(
                 t.getId(), t.getTitle(), t.getDescription(), displayId,
                 t.getPriority(), t.getPosition(), t.getColumn().getId(),
-                assigneeDto, t.getCreatedAt()
+                assigneeDtos, t.getCreatedAt()
         );
+    }
+
+    // Helper: Validate list users
+    private Set<User> validateAndGetAssignees(UUID workspaceId, Set<UUID> userIds) {
+        Set<User> users = new HashSet<>();
+        for (UUID userId : userIds) {
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+
+            boolean isMember = workspaceMemberRepository.findById(
+                    new WorkspaceMember.WorkspaceMemberId(workspaceId, userId)
+            ).isPresent();
+
+            if (!isMember) {
+                throw new RuntimeException("User " + user.getEmail() + " is not in this workspace");
+            }
+            users.add(user);
+        }
+        return users;
     }
 }

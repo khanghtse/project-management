@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity
@@ -42,9 +44,14 @@ public class Task {
     @JoinColumn(name = "column_id", nullable = false)
     private TaskColumn column;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "assignee_id")
-    private User assignee;
+    // --- THAY ĐỔI: TỪ @ManyToOne SANG @ManyToMany ---
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "task_assignees",
+            joinColumns = @JoinColumn(name = "task_id"),
+            inverseJoinColumns = @JoinColumn(name = "user_id")
+    )
+    private Set<User> assignees = new HashSet<>();
 
     // Sub-tasks (Recursive)
     @ManyToOne(fetch = FetchType.LAZY)

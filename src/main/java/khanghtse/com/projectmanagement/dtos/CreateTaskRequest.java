@@ -2,6 +2,7 @@ package khanghtse.com.projectmanagement.dtos;
 
 import lombok.Data;
 
+import java.util.Set;
 import java.util.UUID;
 
 @Data
@@ -10,5 +11,5 @@ public class CreateTaskRequest {
     private String description;
     private String priority; // LOW, MEDIUM, HIGH
     private UUID columnId;   // Task thuộc cột nào
-    private UUID assigneeId; // Người được giao (Optional)
+    private Set<UUID> assigneeIds; // Đổi thành danh sách ID
 }
