@@ -36,6 +36,11 @@ public class InvitationService implements IInvitationService {
         User inviter = userRepository.findByEmail(inviterEmail)
                 .orElseThrow(() -> new RuntimeException("Inviter not found"));
 
+        // --- 1. LOGIC MỚI: BẮT BUỘC NGƯỜI ĐƯỢC MỜI PHẢI CÓ TÀI KHOẢN ---
+        // Nếu bạn muốn cho phép mời người chưa đăng ký, hãy bỏ đoạn check này đi.
+//        User invitee = userRepository.findByEmail(email)
+//                .orElseThrow(() -> new RuntimeException("Email " + email + " chưa đăng ký tài khoản trong hệ thống. Vui lòng bảo họ đăng ký trước."));
+
         // 1. Check xem user đã ở trong workspace chưa
         userRepository.findByEmail(email).ifPresent(user -> {
             boolean isMember = workspaceMemberRepository.findById(new WorkspaceMember.WorkspaceMemberId(workspaceId, user.getId())).isPresent();
@@ -66,30 +71,33 @@ public class InvitationService implements IInvitationService {
     public void acceptInvitation(String token, String userEmail) {
         // 1. Validate Token
         Invitation invitation = invitationRepository.findByToken(token)
-                .orElseThrow(() -> new RuntimeException("Invalid invitation token"));
+                .orElseThrow(() -> new RuntimeException("Lời mời không hợp lệ hoặc đường dẫn bị sai."));
 
         if (invitation.getExpiryDate().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("Invitation expired");
+            throw new RuntimeException("Lời mời này đã hết hạn.");
         }
 
-        // 2. Validate User (Người chấp nhận phải đúng là người được mời - optional, hoặc user mới)
-        // Ở đây ta đơn giản là lấy user đang login hiện tại để add vào.
+        // 2. Lấy user đang login
         User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy thông tin người dùng."));
 
-        // (Optional: Check email user hiện tại có khớp với email trong invitation không?)
-        // if (!user.getEmail().equals(invitation.getEmail())) ...
+        // --- 3. LOGIC QUAN TRỌNG: CHECK KHỚP EMAIL ---
+        // Ngăn chặn trường hợp Login nick A nhưng bấm vào link mời của nick B
+        if (!user.getEmail().equalsIgnoreCase(invitation.getEmail())) {
+            throw new RuntimeException("Lỗi bảo mật: Bạn đang đăng nhập là " + user.getEmail() +
+                    ", nhưng lời mời này được gửi tới " + invitation.getEmail() + ". Vui lòng đăng xuất và đăng nhập đúng tài khoản.");
+        }
 
-        // 3. Add vào Workspace
+        // 4. Add vào Workspace
         WorkspaceMember member = new WorkspaceMember();
         member.setId(new WorkspaceMember.WorkspaceMemberId(invitation.getWorkspace().getId(), user.getId()));
         member.setWorkspace(invitation.getWorkspace());
         member.setUser(user);
-        member.setRole(WorkspaceRole.MEMBER); // Default role
+        member.setRole(WorkspaceRole.MEMBER); // Mặc định là Member
 
         workspaceMemberRepository.save(member);
 
-        // 4. Xóa Invitation sau khi dùng xong
+        // 5. Xóa Invitation sau khi dùng xong (để token không dùng lại được)
         invitationRepository.delete(invitation);
     }
 }
