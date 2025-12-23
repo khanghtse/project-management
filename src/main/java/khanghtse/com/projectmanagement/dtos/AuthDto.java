@@ -29,4 +29,16 @@ public class AuthDto {
             this.accessToken = accessToken;
         }
     }
+
+    // --- MỚI: FORGOT PASSWORD DTOs ---
+    @Data
+    public static class ForgotPasswordRequest {
+        private String email;
+    }
+
+    @Data
+    public static class ResetPasswordRequest {
+        private String token;
+        private String newPassword;
+    }
 }

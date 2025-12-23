@@ -91,4 +91,18 @@ public class AuthController {
 
         return ResponseEntity.ok("Logged out successfully");
     }
+
+    // --- MỚI: API QUÊN MẬT KHẨU ---
+    @PostMapping("/forgot-password")
+    public ResponseEntity<String> forgotPassword(@RequestBody AuthDto.ForgotPasswordRequest request) {
+        authService.forgotPassword(request.getEmail());
+        return ResponseEntity.ok("Link đặt lại mật khẩu đã được gửi vào email của bạn.");
+    }
+
+    // --- MỚI: API ĐẶT LẠI MẬT KHẨU ---
+    @PostMapping("/reset-password")
+    public ResponseEntity<String> resetPassword(@RequestBody AuthDto.ResetPasswordRequest request) {
+        authService.resetPassword(request.getToken(), request.getNewPassword());
+        return ResponseEntity.ok("Mật khẩu đã được thay đổi thành công. Vui lòng đăng nhập lại.");
+    }
 }
