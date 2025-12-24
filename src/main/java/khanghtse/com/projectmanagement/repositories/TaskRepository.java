@@ -10,5 +10,6 @@ import java.util.UUID;
 @Repository
 public interface TaskRepository extends JpaRepository<Task, UUID> {
     // Lấy task theo cột, sắp xếp theo Lexorank (quan trọng để hiển thị đúng thứ tự)
-    List<Task> findByColumnIdOrderByPositionAsc(UUID columnId);
+    // Chỉ lấy các Task không có cha (Task cấp 1) để hiển thị lên Board
+    List<Task> findByColumnIdAndParentTaskIsNullOrderByPositionAsc(UUID columnId);
 }

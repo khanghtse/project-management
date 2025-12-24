@@ -7,10 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -37,7 +34,7 @@ public class TaskService implements ITaskService {
         List<TaskColumn> columns = taskColumnRepository.findByProjectIdOrderByPositionAsc(projectId);
 
         List<ColumnResponse> columnResponses = columns.stream().map(col -> {
-            List<Task> tasks = taskRepository.findByColumnIdOrderByPositionAsc(col.getId());
+            List<Task> tasks = taskRepository.findByColumnIdAndParentTaskIsNullOrderByPositionAsc(col.getId());
             List<TaskResponse> taskResponses = tasks.stream().map(this::mapToTaskDto).collect(Collectors.toList());
             return new ColumnResponse(col.getId(), col.getName(), taskResponses);
         }).collect(Collectors.toList());
@@ -71,7 +68,7 @@ public class TaskService implements ITaskService {
         // Để đơn giản cho demo, ta tạm dùng cơ chế sinh ngẫu nhiên hoặc logic đơn giản.
         // Nếu muốn chèn cuối: getRankBetween(lastTask.position, null)
 
-        List<Task> tasksInCol = taskRepository.findByColumnIdOrderByPositionAsc(column.getId());
+        List<Task> tasksInCol = taskRepository.findByColumnIdAndParentTaskIsNullOrderByPositionAsc(column.getId());
         if (!tasksInCol.isEmpty()) {
             String lastRank = tasksInCol.get(tasksInCol.size() - 1).getPosition();
             newRank = lexorankService.getRankBetween(lastRank, null);
@@ -161,18 +158,78 @@ public class TaskService implements ITaskService {
         taskRepository.deleteById(taskId);
     }
 
+    @Override
+    @Transactional
+    public SubTaskResponse createSubTask(UUID parentTaskId, String title) {
+        Task parentTask = taskRepository.findById(parentTaskId)
+                .orElseThrow(() -> new RuntimeException("Parent task not found"));
+
+        // --- FIX LỖI DUPLICATE KEY: Tăng task_number cho Subtask ---
+        Project project = parentTask.getProject();
+        project.setCurrentTaskNumber(project.getCurrentTaskNumber() + 1);
+        projectRepository.save(project);
+
+        Task subTask = new Task();
+        subTask.setTitle(title);
+        subTask.setParentTask(parentTask);
+
+        // Vẫn gán project/column để quản lý data, nhưng sẽ bị ẩn khỏi board nhờ query trên
+        subTask.setProject(project);
+        subTask.setColumn(parentTask.getColumn());
+        subTask.setPriority(parentTask.getPriority());
+        subTask.setPosition(lexorankService.getRankBetween(null, null));
+        subTask.setTaskNumber(project.getCurrentTaskNumber()); // Dùng số mới sinh thay vì 0
+        subTask.setIsDone(false);
+
+        Task saved = taskRepository.save(subTask);
+        return new SubTaskResponse(saved.getId(), saved.getTitle(), saved.getIsDone());
+    }
+
+    @Override
+    @Transactional
+    public SubTaskResponse toggleSubTask(UUID subTaskId) {
+        Task subTask = taskRepository.findById(subTaskId)
+                .orElseThrow(() -> new RuntimeException("Subtask not found"));
+
+        subTask.setIsDone(!Boolean.TRUE.equals(subTask.getIsDone()));
+        Task saved = taskRepository.save(subTask);
+        return new SubTaskResponse(saved.getId(), saved.getTitle(), saved.getIsDone());
+    }
+
+    @Override
+    @Transactional
+    public void deleteSubTask(UUID subTaskId) {
+        taskRepository.deleteById(subTaskId);
+    }
+
+    @Override
+    public TaskResponse getTask(UUID taskId) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new RuntimeException("Task not found"));
+        return mapToTaskDto(task);
+    }
+
     // Mapper
     private TaskResponse mapToTaskDto(Task t) {
+        // Map assignees...
         List<UserDto> assigneeDtos = t.getAssignees().stream()
                 .map(u -> new UserDto(u.getId(), u.getName(), u.getEmail(), u.getAvatarUrl()))
                 .collect(Collectors.toList());
+
+        // Map subtasks...
+        List<SubTaskResponse> subTaskDtos = t.getSubTasks() != null ?
+                t.getSubTasks().stream()
+                        .map(st -> new SubTaskResponse(st.getId(), st.getTitle(), st.getIsDone()))
+                        .collect(Collectors.toList())
+                : Collections.emptyList();
 
         String displayId = t.getProject().getKey() + "-" + t.getTaskNumber();
 
         return new TaskResponse(
                 t.getId(), t.getTitle(), t.getDescription(), displayId,
                 t.getPriority(), t.getPosition(), t.getColumn().getId(),
-                assigneeDtos, t.getCreatedAt()
+                assigneeDtos, t.getCreatedAt(),
+                subTaskDtos, t.getIsDone() // <--- Thêm subtasks và isDone
         );
     }
 

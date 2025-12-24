@@ -54,4 +54,33 @@ public class TaskController {
         taskService.deleteTask(taskId);
         return ResponseEntity.noContent().build(); // Trả về 204 No Content
     }
+
+    // --- SUBTASK API ---
+
+    // POST /api/v1/tasks/{id}/subtasks
+    @PostMapping("/tasks/{taskId}/subtasks")
+    public ResponseEntity<SubTaskResponse> createSubTask(
+            @PathVariable UUID taskId,
+            @RequestBody CreateSubTaskRequest request) {
+        return ResponseEntity.ok(taskService.createSubTask(taskId, request.getTitle()));
+    }
+
+    // PATCH /api/v1/subtasks/{id}/toggle
+    @PatchMapping("/subtasks/{subTaskId}/toggle")
+    public ResponseEntity<SubTaskResponse> toggleSubTask(@PathVariable UUID subTaskId) {
+        return ResponseEntity.ok(taskService.toggleSubTask(subTaskId));
+    }
+
+    // DELETE /api/v1/subtasks/{id}
+    @DeleteMapping("/subtasks/{subTaskId}")
+    public ResponseEntity<Void> deleteSubTask(@PathVariable UUID subTaskId) {
+        taskService.deleteSubTask(subTaskId);
+        return ResponseEntity.noContent().build();
+    }
+
+    // GET /api/v1/tasks/{taskId}
+    @GetMapping("/tasks/{taskId}")
+    public ResponseEntity<TaskResponse> getTask(@PathVariable UUID taskId) {
+        return ResponseEntity.ok(taskService.getTask(taskId));
+    }
 }

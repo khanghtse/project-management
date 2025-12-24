@@ -10,4 +10,8 @@ public interface ITaskService {
     TaskResponse moveTask(UUID taskId, MoveTaskRequest request);
     TaskResponse updateTask(UUID taskId, UpdateTaskRequest request);
     void deleteTask(UUID taskId);
+    SubTaskResponse createSubTask(UUID parentTaskId, String title);
+    SubTaskResponse toggleSubTask(UUID subTaskId);
+    void deleteSubTask(UUID subTaskId);
+    TaskResponse getTask(UUID taskId);
 }

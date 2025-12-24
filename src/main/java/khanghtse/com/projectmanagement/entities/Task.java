@@ -5,6 +5,7 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -35,6 +36,9 @@ public class Task {
     @Column(nullable = false)
     private String priority; // LOW, MEDIUM, HIGH
 
+    // --- MỚI: Trạng thái hoàn thành ---
+    private Boolean isDone = false;
+
     // Relations
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_id", nullable = false)
@@ -58,6 +62,19 @@ public class Task {
     @JoinColumn(name = "parent_id")
     private Task parentTask;
 
+    @OneToMany(mappedBy = "parentTask", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("createdAt ASC") // Sắp xếp subtask theo thời gian tạo
+    private List<Task> subTasks;
+
+    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Comment> comments;
+//* `mappedBy = "task"`: Ánh xạ với trường `task` trong Entity `Comment`.
+//            * `cascade = CascadeType.ALL`: Mọi thao tác trên Task (bao gồm xóa) sẽ lan sang Comment.
+//            * `orphanRemoval = true`: Đảm bảo Comment sẽ bị xóa sạch khỏi database.
+
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt = LocalDateTime.now();
 }

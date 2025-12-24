@@ -21,4 +21,10 @@ public class TaskResponse {
     private UUID columnId;
     private List<UserDto> assignees; // Trả về danh sách user
     private LocalDateTime createdAt;
+
+    // Bổ sung danh sách Subtasks
+    private List<SubTaskResponse> subTasks;
+
+    // Field này dùng cho frontend biết task này đã xong chưa (nếu muốn)
+    private Boolean isDone;
 }
