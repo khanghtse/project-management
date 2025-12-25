@@ -72,6 +72,9 @@ public class Task {
 //            * `cascade = CascadeType.ALL`: Mọi thao tác trên Task (bao gồm xóa) sẽ lan sang Comment.
 //            * `orphanRemoval = true`: Đảm bảo Comment sẽ bị xóa sạch khỏi database.
 
+    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Attachment> attachments;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 
