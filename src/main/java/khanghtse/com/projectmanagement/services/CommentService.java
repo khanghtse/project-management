@@ -56,6 +56,7 @@ public class CommentService implements ICommentService{
                 c.getAuthor().getId(),
                 c.getAuthor().getName(),
                 c.getAuthor().getEmail(),
+                c.getAuthor().getPhoneNumber(),
                 c.getAuthor().getAvatarUrl()
         );
         return new CommentDto.Response(c.getId(), c.getContent(), authorDto, c.getCreatedAt());

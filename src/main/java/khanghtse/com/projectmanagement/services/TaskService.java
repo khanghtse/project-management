@@ -213,7 +213,7 @@ public class TaskService implements ITaskService {
     private TaskResponse mapToTaskDto(Task t) {
         // Map assignees...
         List<UserDto> assigneeDtos = t.getAssignees().stream()
-                .map(u -> new UserDto(u.getId(), u.getName(), u.getEmail(), u.getAvatarUrl()))
+                .map(u -> new UserDto(u.getId(), u.getName(), u.getEmail(), u.getPhoneNumber(), u.getAvatarUrl()))
                 .collect(Collectors.toList());
 
         // Map subtasks...

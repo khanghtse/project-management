@@ -70,14 +70,14 @@ public class WorkspaceService implements IWorkspaceService{
         return workspaceMemberRepository.findByWorkspaceId(workspaceId).stream()
                 .map(member -> {
                     User u = member.getUser();
-                    return new UserDto(u.getId(), u.getName(), u.getEmail(), u.getAvatarUrl());
+                    return new UserDto(u.getId(), u.getName(), u.getEmail(), u.getPhoneNumber(), u.getAvatarUrl());
                 })
                 .collect(Collectors.toList());
     }
 
     // Helper mapper
     private WorkspaceResponse mapToDto(Workspace w) {
-        UserDto ownerDto = new UserDto(w.getOwner().getId(), w.getOwner().getName(), w.getOwner().getEmail(), w.getOwner().getAvatarUrl());
+        UserDto ownerDto = new UserDto(w.getOwner().getId(), w.getOwner().getName(), w.getOwner().getEmail(), w.getOwner().getPhoneNumber(), w.getOwner().getAvatarUrl());
         return new WorkspaceResponse(w.getId(), w.getName(), w.getDescription(), ownerDto);
     }
 }

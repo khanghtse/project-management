@@ -23,6 +23,8 @@ public class User {
     @Column(nullable = false)
     private String name;
 
+    private String phoneNumber;
+
     // Password có thể null nếu user đăng nhập bằng Google/OAuth2
     private String password;
 
