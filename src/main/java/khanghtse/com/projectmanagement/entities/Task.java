@@ -22,7 +22,7 @@ public class Task {
     @Column(nullable = false)
     private String title;
 
-    @Column(length = 5000)
+    @Column(columnDefinition = "TEXT")
     private String description;
 
     // Friendly ID part. Ví dụ: taskNumber=101 + projectKey="WEB" -> "WEB-101"

@@ -6,6 +6,7 @@ import java.util.UUID;
 
 public interface ITaskService {
     BoardResponse getBoard(UUID projectId);
+    BoardResponse getBoard(UUID projectId, String keyword, String priority, Boolean isMyTask, String currentUserEmail);
     TaskResponse createTask(UUID projectId, CreateTaskRequest request, String userEmail);
     TaskResponse moveTask(UUID taskId, MoveTaskRequest request);
     TaskResponse updateTask(UUID taskId, UpdateTaskRequest request);

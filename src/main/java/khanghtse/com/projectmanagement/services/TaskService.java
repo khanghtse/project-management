@@ -44,6 +44,48 @@ public class TaskService implements ITaskService {
     }
 
     @Override
+    public BoardResponse getBoard(UUID projectId, String keyword, String priority, Boolean isMyTask, String currentUserEmail) {
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new RuntimeException("Project not found"));
+        UUID workspaceId = project.getWorkspace().getId();
+
+        // 1. Xử lý bộ lọc User
+        UUID assigneeId = null;
+        if (Boolean.TRUE.equals(isMyTask)) {
+            User currentUser = userRepository.findByEmail(currentUserEmail).orElse(null);
+            if (currentUser != null) assigneeId = currentUser.getId();
+        }
+
+        // 2. Xử lý bộ lọc Keyword (Search) - QUAN TRỌNG: Xử lý chuỗi tại đây
+        String searchPattern = null;
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            // Chuyển về chữ thường và thêm % bao quanh để tìm kiếm tương đối (LIKE)
+            searchPattern = "%" + keyword.trim().toLowerCase() + "%";
+        }
+
+        // 3. Lấy danh sách cột
+        List<TaskColumn> columns = taskColumnRepository.findByProjectIdOrderByPositionAsc(projectId);
+
+        // 4. Gọi Repository với searchPattern đã xử lý
+        List<Task> allTasks = taskRepository.findTasksByProjectAndFilters(projectId, searchPattern, priority, assigneeId);
+
+        // 5. Group tasks theo Column ID
+        Map<UUID, List<Task>> tasksByColumn = allTasks.stream()
+                .collect(Collectors.groupingBy(t -> t.getColumn().getId()));
+
+        // 6. Map dữ liệu trả về
+        List<ColumnResponse> columnResponses = columns.stream().map(col -> {
+            List<Task> tasksInCol = tasksByColumn.getOrDefault(col.getId(), new ArrayList<>());
+            List<TaskResponse> taskResponses = tasksInCol.stream()
+                    .map(this::mapToTaskDto)
+                    .collect(Collectors.toList());
+            return new ColumnResponse(col.getId(), col.getName(), taskResponses);
+        }).collect(Collectors.toList());
+
+        return new BoardResponse(projectId, workspaceId, columnResponses);
+    }
+
+    @Override
     @Transactional
     public TaskResponse createTask(UUID projectId, CreateTaskRequest request, String userEmail) {
         Project project = projectRepository.findById(projectId)

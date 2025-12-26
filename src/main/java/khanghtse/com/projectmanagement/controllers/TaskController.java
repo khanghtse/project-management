@@ -19,8 +19,14 @@ public class TaskController {
 
     // GET Board data (Columns + Tasks)
     @GetMapping("/projects/{projectId}/board")
-    public ResponseEntity<BoardResponse> getBoard(@PathVariable UUID projectId) {
-        return ResponseEntity.ok(taskService.getBoard(projectId));
+    public ResponseEntity<BoardResponse> getBoard(
+            @PathVariable UUID projectId,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String priority,
+            @RequestParam(required = false) Boolean isMyTask,
+            Principal principal) {
+
+        return ResponseEntity.ok(taskService.getBoard(projectId, keyword, priority, isMyTask, principal.getName()));
     }
 
     // POST Create Task
