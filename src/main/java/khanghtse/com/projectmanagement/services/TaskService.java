@@ -124,6 +124,7 @@ public class TaskService implements ITaskService {
         task.setColumn(column);
         task.setTaskNumber(project.getCurrentTaskNumber());
         task.setPosition(newRank);
+        task.setDueDate(request.getDueDate());
 
         // --- XỬ LÝ NHIỀU ASSIGNEES ---
         if (request.getAssigneeIds() != null && !request.getAssigneeIds().isEmpty()) {
@@ -176,6 +177,10 @@ public class TaskService implements ITaskService {
         }
         if (request.getPriority() != null) {
             task.setPriority(request.getPriority());
+        }
+        // Cho phép set null nếu muốn xóa deadline
+        if (request.getDueDate() != null) {
+            task.setDueDate(request.getDueDate());
         }
 
         // Cập nhật danh sách người làm (Ghi đè)
@@ -271,6 +276,7 @@ public class TaskService implements ITaskService {
                 t.getId(), t.getTitle(), t.getDescription(), displayId,
                 t.getPriority(), t.getPosition(), t.getColumn().getId(),
                 assigneeDtos, t.getCreatedAt(),
+                t.getDueDate(),
                 subTaskDtos, t.getIsDone() // <--- Thêm subtasks và isDone
         );
     }

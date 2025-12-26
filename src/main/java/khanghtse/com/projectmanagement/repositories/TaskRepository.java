@@ -32,4 +32,7 @@ public interface TaskRepository extends JpaRepository<Task, UUID> {
             @Param("priority") String priority,
             @Param("assigneeId") UUID assigneeId
     );
+
+    // Lấy tất cả Task chính trong dự án
+    List<Task> findByProjectIdAndParentTaskIsNull(UUID projectId);
 }

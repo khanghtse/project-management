@@ -39,6 +39,10 @@ public class Task {
     // --- MỚI: Trạng thái hoàn thành ---
     private Boolean isDone = false;
 
+    // --- MỚI: DEADLINE ---
+    @Column(name = "due_date")
+    private LocalDateTime dueDate;
+
     // Relations
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_id", nullable = false)

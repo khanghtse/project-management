@@ -3,6 +3,7 @@ package khanghtse.com.projectmanagement.controllers;
 
 import khanghtse.com.projectmanagement.dtos.CreateProjectRequest;
 import khanghtse.com.projectmanagement.dtos.ProjectResponse;
+import khanghtse.com.projectmanagement.dtos.ProjectStatsDto;
 import khanghtse.com.projectmanagement.services.IProjectService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -49,4 +50,10 @@ public class ProjectController {
         return ResponseEntity.ok().build(); // Placeholder
     }
     */
+
+    // GET /api/v1/projects/{id}/stats
+    @GetMapping("/projects/{projectId}/stats")
+    public ResponseEntity<ProjectStatsDto> getProjectStats(@PathVariable UUID projectId) {
+        return ResponseEntity.ok(projectService.getProjectStats(projectId));
+    }
 }

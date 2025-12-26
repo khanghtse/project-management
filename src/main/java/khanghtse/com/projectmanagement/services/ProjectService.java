@@ -2,6 +2,8 @@ package khanghtse.com.projectmanagement.services;
 
 import khanghtse.com.projectmanagement.dtos.CreateProjectRequest;
 import khanghtse.com.projectmanagement.dtos.ProjectResponse;
+import khanghtse.com.projectmanagement.dtos.ProjectStatsDto;
+import khanghtse.com.projectmanagement.dtos.TaskResponse;
 import khanghtse.com.projectmanagement.entities.*;
 import khanghtse.com.projectmanagement.enums.ProjectRole;
 import khanghtse.com.projectmanagement.repositories.*;
@@ -9,7 +11,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -22,6 +27,7 @@ public class ProjectService implements IProjectService {
     private final TaskColumnRepository taskColumnRepository;
     private final ProjectMemberRepository projectMemberRepository;
     private final UserRepository userRepository;
+    private final TaskRepository taskRepository;
 
     @Override
     @Transactional
@@ -86,6 +92,68 @@ public class ProjectService implements IProjectService {
                         p.getUpdatedAt()
                 ))
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public ProjectStatsDto getProjectStats(UUID projectId) {
+        // 1. Lấy tất cả task
+        List<Task> tasks = taskRepository.findByProjectIdAndParentTaskIsNull(projectId);
+
+        // 2. Tính tổng
+        long totalTasks = tasks.size();
+
+        // 3. Tính hoàn thành (Dựa trên isDone hoặc cột cuối cùng - ở đây dùng isDone cho chuẩn)
+        long completedTasks = tasks.stream().filter(t -> Boolean.TRUE.equals(t.getIsDone())).count();
+
+        // 4. Tính quá hạn (Chưa xong AND Có deadline AND Deadline < Hiện tại)
+        LocalDateTime now = LocalDateTime.now();
+        List<Task> overdueList = tasks.stream()
+                .filter(t -> !Boolean.TRUE.equals(t.getIsDone())
+                        && t.getDueDate() != null
+                        && t.getDueDate().isBefore(now))
+                .collect(Collectors.toList());
+        long overdueTasks = overdueList.size();
+
+        // 5. Group by Status (Column Name)
+        Map<String, Long> tasksByStatus = tasks.stream()
+                .collect(Collectors.groupingBy(
+                        t -> t.getColumn().getName(),
+                        Collectors.counting()
+                ));
+
+        // 6. Group by Assignee
+        // Vì Task có nhiều assignee, ta cần flatMap
+        // Logic: Task A có User 1, User 2 -> User 1 +1 task, User 2 +1 task
+        Map<String, Long> tasksByAssignee = new HashMap<>();
+        for (Task task : tasks) {
+            if (task.getAssignees().isEmpty()) {
+                tasksByAssignee.merge("Chưa gán", 1L, Long::sum);
+            } else {
+                for (var user : task.getAssignees()) {
+                    tasksByAssignee.merge(user.getName(), 1L, Long::sum);
+                }
+            }
+        }
+
+        // 7. Map overdue list sang DTO (để hiển thị chi tiết)
+        // Bạn cần inject TaskService để dùng lại hàm mapToTaskDto hoặc copy lại logic map đơn giản ở đây
+        // Để đơn giản tôi map thủ công các field cần thiết
+        List<TaskResponse> overdueDtos = overdueList.stream().map(t -> {
+            String displayId = t.getProject().getKey() + "-" + t.getTaskNumber();
+            return new TaskResponse(
+                    t.getId(), t.getTitle(), null, displayId, t.getPriority(),
+                    null, null, null, null, t.getDueDate(), null, false
+            );
+        }).collect(Collectors.toList());
+
+        return new ProjectStatsDto(
+                totalTasks,
+                completedTasks,
+                overdueTasks,
+                tasksByStatus,
+                tasksByAssignee,
+                overdueDtos
+        );
     }
 
     // Tạo cột mặc định: To Do -> In Progress -> Done
