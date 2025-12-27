@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -42,16 +43,18 @@ public class TaskController {
     @PutMapping("/tasks/{taskId}/move")
     public ResponseEntity<TaskResponse> moveTask(
             @PathVariable UUID taskId,
-            @RequestBody MoveTaskRequest request) {
-        return ResponseEntity.ok(taskService.moveTask(taskId, request));
+            @RequestBody MoveTaskRequest request,
+            Principal principal) {
+        return ResponseEntity.ok(taskService.moveTask(taskId, request, principal.getName()));
     }
 
     // PATCH Update Task (Sửa tiêu đề, mô tả, assignee...)
     @PatchMapping("/tasks/{taskId}")
     public ResponseEntity<TaskResponse> updateTask(
             @PathVariable UUID taskId,
-            @RequestBody UpdateTaskRequest request) {
-        return ResponseEntity.ok(taskService.updateTask(taskId, request));
+            @RequestBody UpdateTaskRequest request,
+            Principal principal) {
+        return ResponseEntity.ok(taskService.updateTask(taskId, request, principal.getName()));
     }
 
     // DELETE Task
@@ -88,5 +91,11 @@ public class TaskController {
     @GetMapping("/tasks/{taskId}")
     public ResponseEntity<TaskResponse> getTask(@PathVariable UUID taskId) {
         return ResponseEntity.ok(taskService.getTask(taskId));
+    }
+
+    // GET Logs
+    @GetMapping("/tasks/{taskId}/activities")
+    public ResponseEntity<List<ActivityLogDto.Response>> getActivities(@PathVariable UUID taskId) {
+        return ResponseEntity.ok(taskService.getActivityLogs(taskId));
     }
 }

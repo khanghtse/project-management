@@ -20,6 +20,7 @@ public class TaskService implements ITaskService {
     private final UserRepository userRepository;
     private final ILexorankService lexorankService;
     private final WorkspaceMemberRepository workspaceMemberRepository;
+    private final ActivityLogRepository activityLogRepository;
 
     // Lấy dữ liệu Board (Cột + Tasks)
     @Override
@@ -138,12 +139,14 @@ public class TaskService implements ITaskService {
 //        }
 
         Task savedTask = taskRepository.save(task);
+        // Ghi log
+        logActivity(savedTask, "đã tạo công việc này", userEmail);
         return mapToTaskDto(savedTask);
     }
 
     @Override
     @Transactional
-    public TaskResponse moveTask(UUID taskId, MoveTaskRequest request) {
+    public TaskResponse moveTask(UUID taskId, MoveTaskRequest request, String userEmail) {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new RuntimeException("Task not found"));
 
@@ -159,12 +162,13 @@ public class TaskService implements ITaskService {
         task.setPosition(newRank);
 
         Task savedTask = taskRepository.save(task);
+        logActivity(task, "task đã được di chuyển sang cột", userEmail);
         return mapToTaskDto(savedTask);
     }
 
     @Override
     @Transactional
-    public TaskResponse updateTask(UUID taskId, UpdateTaskRequest request) {
+    public TaskResponse updateTask(UUID taskId, UpdateTaskRequest request, String userEmail) {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new RuntimeException("Task not found"));
 
@@ -190,6 +194,8 @@ public class TaskService implements ITaskService {
         }
 
         Task savedTask = taskRepository.save(task);
+        // Ví dụ ghi log đơn giản (nâng cao thì check if change cái gì ghi cái đó)
+        logActivity(task, "đã cập nhật thông tin công việc", userEmail);
         return mapToTaskDto(savedTask);
     }
 
@@ -256,6 +262,19 @@ public class TaskService implements ITaskService {
         return mapToTaskDto(task);
     }
 
+    @Override
+    public List<ActivityLogDto.Response> getActivityLogs(UUID taskId) {
+        return activityLogRepository.findByTaskIdOrderByCreatedAtDesc(taskId).stream()
+                .map(log -> new ActivityLogDto.Response(
+                        log.getId(),
+                        log.getContent(),
+                        log.getUser().getName(),
+                        log.getUser().getAvatarUrl(),
+                        log.getCreatedAt()
+                ))
+                .collect(Collectors.toList());
+    }
+
     // Mapper
     private TaskResponse mapToTaskDto(Task t) {
         // Map assignees...
@@ -298,5 +317,15 @@ public class TaskService implements ITaskService {
             users.add(user);
         }
         return users;
+    }
+
+    // --- LOGIC MỚI: HÀM GHI LOG (Dùng nội bộ) ---
+    private void logActivity(Task task, String content, String userEmail) {
+        if (userEmail == null) return; // System action
+        User user = userRepository.findByEmail(userEmail).orElse(null);
+        if (user != null) {
+            ActivityLog log = new ActivityLog(content, task, user);
+            activityLogRepository.save(log);
+        }
     }
 }
